@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<!-- index.html -->
+<!-- Copyright (C) 2026 Francesco Scolz -->
+<!-- License: AGPL-3.0 (see LICENSE) -->
+    <html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Recto: local flashcards from CSV files. No accounts, no forced scheduling.">
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)">
+        <title>Recto</title>
+        <link rel="icon" href="Logo.png">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <noscript><p class="b">Recto requires JavaScript.</p></noscript>
+        <div id="loading" hidden aria-live="polite">Loading…</div>
+
+        <!-- Auth gate: first-run setup or unlock for a new session -->
+        <div id="login" hidden role="dialog" aria-modal="true" aria-labelledby="login-title">
+          <div class="login-box">
+            <img class="logo login-logo" src="Logo.png" alt="">
+            <h1 id="login-title">Recto</h1>
+            <p class="mut" id="login-hint">Enter the passphrase to unlock</p>
+            <form id="login-form">
+              <input id="login-code" type="text" placeholder="Setup code (shown in the server console)" aria-label="Setup code" autocomplete="off" spellcheck="false" hidden>
+              <input id="login-pw" type="password" placeholder="Passphrase" aria-label="Passphrase" autofocus required minlength="1">
+              <input id="login-pw2" type="password" placeholder="Confirm passphrase" aria-label="Confirm passphrase" hidden minlength="8">
+              <div id="login-msg" aria-live="polite"></div>
+              <button type="submit" id="login-btn">Unlock</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Home: deck tree -->
+        <div id="home" hidden>
+          <header class="home-header">
+            <img class="logo" src="Logo.png" alt="">
+            <div class="home-title">
+              <h1>Recto</h1>
+              <p>Local flashcards, simple and fast.</p>
+              <span class="version" id="version"></span>
+            </div>
+            <button id="newdeck" class="plus" aria-label="New deck" title="New deck">+</button>
+            <button id="logout" class="logout" aria-label="Logout" title="Logout">Logout</button>
+          </header>
+          <section id="tree"></section>
+        </div>
+
+        <!-- Study view -->
+        <div id="study" hidden>
+          <div class="row">
+            <button id="homebtn" title="Back to decks">Back</button>
+            <h1 id="title"></h1>
+          </div>
+          <div class="row" role="group" aria-label="Filters">
+            <select id="fsub" aria-label="Subdeck"></select>
+            <select id="frating" aria-label="Rating">
+              <option value="all">All ratings</option>
+              <option value="new">Unrated</option>
+              <option value="bad">Bad</option>
+              <option value="ok">Ok</option>
+              <option value="good">Good</option>
+            </select>
+            <select id="ftag" aria-label="Tag"></select>
+          </div>
+
+          <div class="mut" id="stats"></div>
+          <div id="prog" hidden><div id="progbar"></div></div>
+          <div id="card" role="button" tabindex="0" aria-live="polite"></div>
+          <div class="row rate" id="rate" hidden>
+            <button class="b" data-r="bad">Bad <kbd>1</kbd></button>
+            <button class="o" data-r="ok">Ok <kbd>2</kbd></button>
+            <button class="g" data-r="good">Good <kbd>3</kbd></button>
+          </div>
+          <div class="row actions">
+            <button id="prev" aria-label="Previous">Previous</button>
+            <button id="skip">Skip</button>
+            <button id="shuf">Shuffle</button>
+            <button id="editbtn">Edit</button>
+            <button id="addbtn">Add</button>
+            <button id="delbtn">Delete</button>
+            <span class="mut" id="pos"></span>
+          </div>
+          <br>
+          <div class="mut" id="keys">Space/Enter: flip / 1-2-3: rate / ← →: navigate / E: edit</div>
+
+      <!-- Card editor (used for both "Edit" and "Add") -->
+      <div id="edit" hidden role="dialog" aria-modal="true" aria-label="Edit card">
+        <div class="ed-box">
+          <h1 id="etitle">Edit card</h1>
+          <select id="edeck" aria-label="Deck" hidden></select>
+          <div class="ed-tools">
+            <button data-cmd="bold" aria-label="Bold"><b>B</b></button>
+            <button data-cmd="italic" aria-label="Italic"><i>I</i></button>
+            <button data-cmd="underline" aria-label="Underline"><u>U</u></button>
+            <button data-cmd="subscript" aria-label="Subscript">x₂</button>
+            <button data-cmd="superscript" aria-label="Superscript">x²</button>
+            <button data-cmd="insertUnorderedList" aria-label="Bulleted list">•</button>
+            <button data-cmd="insertOrderedList" aria-label="Numbered list">1.</button>
+            <button data-cmd="removeFormat" aria-label="Clear formatting">Tx</button>
+          </div>
+          <span class="fld" id="lfront">Front</span>
+          <div id="ef" class="ed" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="lfront"></div>
+          <span class="fld" id="lback">Back</span>
+          <div id="eb" class="ed" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="lback"></div>
+          <input id="etags" type="text" placeholder="Tags (space-separated, optional)" aria-label="Tags" hidden>
+          <div id="emsg" aria-live="polite"></div>
+          <div class="row">
+            <button id="esave">Save</button>
+            <button id="ecancel">Cancel</button>
+            <span class="mut">Ctrl+Enter to save · Esc to cancel</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Deck options menu (opened from the gear on each home row) -->
+    <div id="menu" role="menu" hidden>
+      <button id="m-sub" role="menuitem" data-for="folder">New subdeck</button>
+      <button id="m-import" role="menuitem" data-for="folder">Import CSV</button>
+      <button id="m-export" role="menuitem" data-for="deck">Export CSV</button>
+      <button id="m-rename" role="menuitem">Rename</button>
+      <button id="m-reset" role="menuitem">Reset progress</button>
+      <button id="m-delete" role="menuitem">Delete</button>
+    </div>
+
+    <!-- In-app dialog, replaces confirm()/prompt() -->
+    <div id="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlg-title">
+      <div class="dlg-box">
+        <h1 id="dlg-title"></h1>
+        <p id="dlg-msg"></p>
+        <input id="dlg-input" type="text" autocomplete="off" hidden>
+        <div class="row dlg-btns">
+          <button id="dlg-cancel">Cancel</button>
+          <button id="dlg-ok">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" aria-live="assertive"></div>
+
+    <input id="importfile" type="file" accept=".csv,.tsv,.txt,text/csv" multiple hidden>
+
+    <script src="app.js"></script>
+    </body>
+</html>

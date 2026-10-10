@@ -1,0 +1,24 @@
+# Runtime data: only the bundled examples are tracked. Everything else in data/
+# (your decks, passphrase hash, ratings, backups, trash) stays out of git.
+data/*
+!data/examples/
+
+# Temp files from atomic writes and backups, wherever they appear
+.*.tmp
+*.[cC][sS][vV].bak
+
+# TLS material and secrets
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.env
+
+# Python / local noise
+__pycache__/
+*.pyc
+.venv/
+*.log
+nohup.out
+.DS_Store
