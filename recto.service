@@ -1,0 +1,55 @@
+# Example hardened systemd USER unit for Recto.
+#
+# Install:
+#   mkdir -p ~/.config/systemd/user
+#   cp recto.service ~/.config/systemd/user/
+# Then replace all {X} fields ({HOST}, {PORT}, {DATA_DIR}, {CERT}, {KEY} and {RECTO_DIR}) below with absolute paths and run:
+#   mkdir -p {DATA_DIR} && chmod 700 {DATA_DIR}   # must exist before the first start: ReadWritePaths= fails otherwise
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now recto
+#
+# HTTPS is mandatory: replace {CERT} and {KEY} with absolute paths to the PEM files
+# (keep the key outside the repository).
+#
+# Notes:
+# - Every sandboxing line is optional: drop any that breaks your setup.
+#   (PrivateUsers is deliberately NOT used: it does not work well in user units.)
+
+[Unit]
+Description=Recto flashcards
+
+[Service]
+ExecStart=/usr/bin/python3 {RECTO_DIR}/server.py --host {HOST} --port {PORT} --data {DATA_DIR} --cert {CERT} --key {KEY}
+WorkingDirectory={RECTO_DIR}
+ReadWritePaths={DATA_DIR}
+Restart=on-failure
+RestartSec=5
+UMask=0077
+
+# --- sandboxing ---
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectClock=true
+PrivateDevices=true
+RestrictSUIDSGID=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RemoveIPC=true
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=default.target
