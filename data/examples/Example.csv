@@ -1,0 +1,5 @@
+#separator:semicolon
+#tags column:3
+front;back;tags
+Hello;**Ciao**;greetings
+Euler's identity;"$e^{i\pi}+1=0$";math
